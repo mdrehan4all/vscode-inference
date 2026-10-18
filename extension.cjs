@@ -90,6 +90,7 @@ function createApp(vscode, bridgeState, apiKey) {
   });
 
   app.use('/v1/chat/completions', (request, response, next) => {
+    /*
     if (request.get('authorization') !== `Bearer ${apiKey}`) {
       return response.status(401).json({
         error: {
@@ -99,7 +100,7 @@ function createApp(vscode, bridgeState, apiKey) {
         }
       });
     }
-
+    */
     next();
   });
 

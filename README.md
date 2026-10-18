@@ -37,6 +37,20 @@ const completion = await client.chat.completions.create({
 console.log(completion.choices[0].message.content);
 ```
 
+## Endpoint Example
+
+You can use end point `http://127.0.0.1:3210/v1/chat/completions` with follow payload
+
+```json
+{
+    "model": "gpt-4o-mini",
+    "messages": [
+        { "role": "system", "content": "Answer clearly and concisely." },
+        { "role": "user", "content": "What is full form of LED" }
+    ]
+}
+```
+
 The bridge automatically prefers the `gpt-4o` family when available, otherwise it uses the first available VS Code model. Use `model: 'auto'` or omit the model to use that default; you can still pass a listed model ID to select one explicitly. The root endpoint reports the chosen default.
 
 Streaming completions are supported. Since VS Code's Language Model API does not support system messages, `system` and `developer` messages are passed as user-provided instructions. Model access and usage remain subject to VS Code and the selected provider's consent, availability, and rate limits.
