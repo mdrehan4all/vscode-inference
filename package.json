@@ -1,0 +1,49 @@
+{
+  "name": "vscode-openai-bridge",
+  "displayName": "VS Code OpenAI Bridge",
+  "description": "Expose VS Code language models through a local OpenAI-compatible API.",
+  "version": "1.0.0",
+  "publisher": "local",
+  "private": true,
+  "type": "module",
+  "main": "./extension.cjs",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscodeOpenAI.startBridge",
+        "title": "VS Code OpenAI Bridge: Start Server"
+      },
+      {
+        "command": "vscodeOpenAI.stopBridge",
+        "title": "VS Code OpenAI Bridge: Stop Server"
+      }
+    ],
+    "configuration": {
+      "title": "VS Code OpenAI Bridge",
+      "properties": {
+        "vscodeOpenAI.port": {
+          "type": "integer",
+          "default": 3210,
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Loopback port for the OpenAI-compatible API. Use 0 to select an available port."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "node --check extension.cjs"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
