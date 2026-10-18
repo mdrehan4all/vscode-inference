@@ -67,7 +67,7 @@ function createApp(vscode, bridgeState, apiKey) {
   app.get('/', (_request, response) => {
     response.json({
       status: 'ok',
-      service: 'VS Code OpenAI Bridge',
+      service: 'VS Code Inference',
       modelsAvailable: bridgeState.models.length > 0,
       defaultModel: bridgeState.defaultModel?.id ?? null,
       models: '/v1/models',

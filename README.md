@@ -1,4 +1,4 @@
-# VS Code OpenAI Bridge
+# VS Code Inference
 
 This VS Code extension exposes models available through VS Code's Language Model API as a local OpenAI-compatible chat completions API. VS Code must remain open while the bridge is running.
 
@@ -15,14 +15,14 @@ The model-list endpoint does not require an API key; chat completions still do. 
 
 ## OpenAI SDK Example
 
-Install the OpenAI JavaScript SDK in your client project, then use the bridge's Base URL and API key:
+Install the OpenAI JavaScript SDK `npm install openai` in your client project, then use the bridge's Base URL and API key:
 
 ```js
 import OpenAI from 'openai';
 
 const client = new OpenAI({
   baseURL: 'http://127.0.0.1:3210/v1',
-  apiKey: process.env.VSCODE_BRIDGE_API_KEY
+  apiKey: process.env.VSCODE_BRIDGE_API_KEY || 'without-api-key'
 });
 
 const models = await client.models.list();
