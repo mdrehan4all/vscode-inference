@@ -37,6 +37,31 @@ const completion = await client.chat.completions.create({
 console.log(completion.choices[0].message.content);
 ```
 
+## OpenAI SDK Example (with Tools)
+
+```js
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: 'http://127.0.0.1:3210/v1',
+  apiKey: process.env.VSCODE_BRIDGE_API_KEY || 'without-api-key'
+});
+
+const tools = [] // add your tools here
+
+const models = await client.models.list();
+const completion = await client.chat.completions.create({
+  model: 'auto',
+  messages: [
+    { role: 'system', content: 'Answer clearly and concisely.' },
+    { role: 'user', content: 'What is an ES module?' }
+  ],
+  tools: tools
+});
+
+console.log(completion.choices[0].message.content);
+```
+
 ## Endpoint Example
 
 You can get available models to use from this url with GET Method `http://127.0.0.1:3210/v1/chat/completions`
@@ -114,6 +139,34 @@ You can use end point with POST Method `http://127.0.0.1:3210/v1/chat/completion
     "messages": [
         { "role": "system", "content": "Answer clearly and concisely." },
         { "role": "user", "content": "What is full form of LED" }
+    ]
+}
+```
+
+Example for `tools`
+
+```json
+{
+    "model": "gpt-4o-mini",
+    "messages": [
+        { "role": "system", "content": "Answer clearly and concisely." },
+        { "role": "user", "content": "What is full form of LED" }
+    ],
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+            "name": "get_current_weather",
+            "description": "Get the current weather for a given location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                "location": { "type": "string", "description": "The city and state, e.g. San Francisco, CA" }
+                },
+                "required": ["location"]
+            }
+            }
+        }
     ]
 }
 ```
