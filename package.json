@@ -6,7 +6,7 @@
   "publisher": "local",
   "private": true,
   "type": "module",
-  "main": "./extension.cjs",
+  "main": "./extension.js",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -41,7 +41,7 @@
     }
   },
   "scripts": {
-    "check": "node --check extension.cjs",
+    "check": "node --check extension.js",
     "test": "node --test"
   },
   "dependencies": {

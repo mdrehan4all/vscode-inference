@@ -1,5 +1,5 @@
-const express = require('express');
-const { randomBytes, randomUUID } = require('node:crypto');
+import express from 'express';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 const HOST = '127.0.0.1';
 
@@ -426,8 +426,8 @@ async function ensureBridgeServer(vscode) {
   return bridgeBaseUrl;
 }
 
-function activate(context) {
-  const vscode = require('vscode');
+async function activate(context) {
+  const vscode = await import('vscode');
   output = vscode.window.createOutputChannel('VS Code OpenAI Bridge');
   context.subscriptions.push(output);
   output.appendLine('Extension activated. Starting the local API server.');
@@ -441,7 +441,6 @@ function activate(context) {
   context.subscriptions.push(vscode.commands.registerCommand(
     'vscodeOpenAI.startBridge',
     async () => {
-      const vscode = require('vscode');
       if (bridgeState.models.length > 0) {
         output.show(true);
         return;
@@ -520,4 +519,4 @@ function deactivate() {
   bridgeStatusItem = undefined;
 }
 
-module.exports = { activate, createApp, deactivate, parseToolCalls, selectDefaultModel, toPrompt };
+export { activate, createApp, deactivate, parseToolCalls, selectDefaultModel, toPrompt };

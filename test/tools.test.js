@@ -1,6 +1,6 @@
-const assert = require('node:assert/strict');
-const test = require('node:test');
-const { parseToolCalls, toPrompt } = require('../extension.cjs');
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { parseToolCalls, toPrompt } from '../extension.js';
 
 const vscode = {
   LanguageModelChatMessage: {
