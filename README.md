@@ -122,4 +122,6 @@ The bridge automatically prefers the `gpt-4o` family when available, otherwise i
 
 Streaming completions are supported. Since VS Code's Language Model API does not support system messages, `system` and `developer` messages are passed as user-provided instructions. Model access and usage remain subject to VS Code and the selected provider's consent, availability, and rate limits.
 
+OpenAI-compatible function tools are passed to the model as instructions and returned as standard `tool_calls` responses. The calling client is responsible for executing each function and sending its result back as a `tool` message; the bridge does not execute client functions. Tool selection is generated through the model's text response, because VS Code's Language Model API does not expose native function calling.
+
 Note: If you are not getting any model, check point 3 from the start of this document.

@@ -41,7 +41,8 @@
     }
   },
   "scripts": {
-    "check": "node --check extension.cjs"
+    "check": "node --check extension.cjs",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^5.1.0"

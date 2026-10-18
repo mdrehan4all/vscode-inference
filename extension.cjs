@@ -21,7 +21,31 @@ function textContent(content) {
   }).join('');
 }
 
-function toPrompt(vscode, messages) {
+function toolInstruction(tools, toolChoice) {
+  if (tools.length === 0 || toolChoice === 'none') {
+    return undefined;
+  }
+
+  const availableTools = tools.map((tool) => tool.function);
+  const forcedName = typeof toolChoice === 'object'
+    ? toolChoice.function?.name
+    : undefined;
+  const choiceInstruction = forcedName
+    ? `You must call the ${forcedName} function.`
+    : toolChoice === 'required'
+      ? 'You must call at least one function.'
+      : 'Call a function only when it helps answer the user.';
+
+  return [
+    'Function tools are available. Do not claim to execute them yourself.',
+    'When calling one, respond only with the exact prefix TOOL_CALLS: followed by a JSON object in this format: {"tool_calls":[{"name":"function_name","arguments":{"key":"value"}}]}.',
+    'Use valid JSON arguments matching the function schema. For a normal response, do not use the TOOL_CALLS: prefix.',
+    choiceInstruction,
+    `Available functions: ${JSON.stringify(availableTools)}`
+  ].join('\n');
+}
+
+function toPrompt(vscode, messages, tools = [], toolChoice = 'auto') {
   if (!Array.isArray(messages) || messages.length === 0) {
     throw new TypeError('messages must be a non-empty array.');
   }
@@ -29,19 +53,38 @@ function toPrompt(vscode, messages) {
   const instructions = [];
   const prompt = [];
 
+  const instruction = toolInstruction(tools, toolChoice);
+  if (instruction) {
+    instructions.push(instruction);
+  }
+
   for (const message of messages) {
     if (!message || typeof message.role !== 'string') {
       throw new TypeError('Each message must include a role and text content.');
     }
 
-    const content = textContent(message.content);
+    let content = message.content == null && message.role === 'assistant' && message.tool_calls
+      ? ''
+      : textContent(message.content);
 
     if (message.role === 'system' || message.role === 'developer') {
       instructions.push(content);
     } else if (message.role === 'user') {
       prompt.push(vscode.LanguageModelChatMessage.User(content));
     } else if (message.role === 'assistant') {
+      if (Array.isArray(message.tool_calls)) {
+        content += `\n${message.tool_calls.map((call) =>
+          `TOOL_CALLS: ${JSON.stringify({ tool_calls: [{
+            name: call.function?.name,
+            arguments: call.function?.arguments
+          }] })}`
+        ).join('\n')}`;
+      }
       prompt.push(vscode.LanguageModelChatMessage.Assistant(content));
+    } else if (message.role === 'tool' || message.role === 'function') {
+      prompt.push(vscode.LanguageModelChatMessage.User(
+        `Result from function ${message.name ?? message.tool_call_id ?? 'tool'}: ${content}`
+      ));
     } else {
       throw new TypeError(`The ${message.role} message role is not supported.`);
     }
@@ -52,6 +95,40 @@ function toPrompt(vscode, messages) {
   }
 
   return prompt;
+}
+
+function parseToolCalls(content, tools) {
+  const prefix = 'TOOL_CALLS:';
+  const trimmed = content.trim();
+  if (!trimmed.startsWith(prefix)) {
+    return undefined;
+  }
+
+  try {
+    const result = JSON.parse(trimmed.slice(prefix.length).trim());
+    if (!Array.isArray(result.tool_calls) || result.tool_calls.length === 0) {
+      return undefined;
+    }
+
+    const calls = result.tool_calls.map((call) => {
+      const definition = tools.find((tool) => tool.function.name === call.name)?.function;
+      if (!definition) {
+        throw new TypeError(`The model selected an unknown function: ${call.name}`);
+      }
+      const args = typeof call.arguments === 'string'
+        ? call.arguments
+        : JSON.stringify(call.arguments ?? {});
+      JSON.parse(args);
+      return {
+        id: `call_${randomUUID()}`,
+        type: 'function',
+        function: { name: definition.name, arguments: args }
+      };
+    });
+    return calls;
+  } catch {
+    return undefined;
+  }
 }
 
 function selectDefaultModel(models) {
@@ -134,9 +211,14 @@ function createApp(vscode, bridgeState, apiKey) {
       });
     }
 
+    const tools = Array.isArray(request.body?.tools)
+      ? request.body.tools.filter((tool) => tool?.type === 'function' && tool.function?.name)
+      : [];
+    const toolChoice = request.body?.tool_choice ?? 'auto';
+
     let prompt;
     try {
-      prompt = toPrompt(vscode, request.body.messages);
+      prompt = toPrompt(vscode, request.body.messages, tools, toolChoice);
     } catch (error) {
       return response.status(400).json({
         error: {
@@ -159,7 +241,7 @@ function createApp(vscode, bridgeState, apiKey) {
     try {
       const result = await model.sendRequest(prompt, {}, cancellation.token);
 
-      if (request.body.stream === true) {
+      if (request.body.stream === true && (tools.length === 0 || toolChoice === 'none')) {
         response.status(200).set({
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -200,6 +282,58 @@ function createApp(vscode, bridgeState, apiKey) {
         content += fragment;
       }
 
+      const toolCalls = toolChoice === 'none' ? undefined : parseToolCalls(content, tools);
+      const finishReason = toolCalls ? 'tool_calls' : 'stop';
+
+      if (request.body.stream === true) {
+        response.status(200).set({
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive'
+        });
+        response.flushHeaders();
+
+        if (!response.destroyed && toolCalls) {
+          response.write(`data: ${JSON.stringify({
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: model.id,
+            choices: [{
+              index: 0,
+              delta: { tool_calls: toolCalls.map((call, index) => ({
+                index,
+                id: call.id,
+                type: call.type,
+                function: call.function
+              })) },
+              finish_reason: null
+            }]
+          })}\n\n`);
+        } else if (!response.destroyed && content) {
+          response.write(`data: ${JSON.stringify({
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: model.id,
+            choices: [{ index: 0, delta: { content }, finish_reason: null }]
+          })}\n\n`);
+        }
+
+        if (!response.destroyed) {
+          response.write(`data: ${JSON.stringify({
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: model.id,
+            choices: [{ index: 0, delta: {}, finish_reason: finishReason }]
+          })}\n\n`);
+          response.end('data: [DONE]\n\n');
+        }
+
+        return;
+      }
+
       response.json({
         id,
         object: 'chat.completion',
@@ -207,8 +341,8 @@ function createApp(vscode, bridgeState, apiKey) {
         model: model.id,
         choices: [{
           index: 0,
-          message: { role: 'assistant', content },
-          finish_reason: 'stop'
+          message: { role: 'assistant', content: toolCalls ? null : content, ...(toolCalls ? { tool_calls: toolCalls } : {}) },
+          finish_reason: finishReason
         }]
       });
     } catch (error) {
@@ -386,4 +520,4 @@ function deactivate() {
   bridgeStatusItem = undefined;
 }
 
-module.exports = { activate, createApp, deactivate, selectDefaultModel };
+module.exports = { activate, createApp, deactivate, parseToolCalls, selectDefaultModel, toPrompt };
