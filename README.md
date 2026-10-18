@@ -39,7 +39,74 @@ console.log(completion.choices[0].message.content);
 
 ## Endpoint Example
 
-You can use end point `http://127.0.0.1:3210/v1/chat/completions` with follow payload
+You can get available models to use from this url with GET Method `http://127.0.0.1:3210/v1/chat/completions`
+
+
+```json
+{
+    "object": "list",
+    "data": [
+        {
+            "id": "gpt-4o-mini",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-4o mini",
+            "family": "gpt-4o-mini"
+        },
+        {
+            "id": "auto",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "Auto",
+            "family": "claude-fable-5.1"
+        },
+        {
+            "id": "copilot-utility-small",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-4o mini",
+            "family": "copilot-utility-small"
+        },
+        {
+            "id": "copilot-utility",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-5 mini",
+            "family": "copilot-utility"
+        },
+        {
+            "id": "copilot-dictation-cleanup-nano",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-5.4 nano",
+            "family": "copilot-dictation-cleanup-nano"
+        },
+        {
+            "id": "copilot-dictation-cleanup-luna",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-5.6 Luna",
+            "family": "copilot-dictation-cleanup-luna"
+        },
+        {
+            "id": "gpt-5.6-luna",
+            "object": "model",
+            "created": 0,
+            "owned_by": "vscode",
+            "name": "GPT-5.6 Luna",
+            "family": "gpt-5.6-luna"
+        }
+    ]
+}
+```
+
+You can use end point with POST Method `http://127.0.0.1:3210/v1/chat/completions` with the following payload.
 
 ```json
 {
@@ -54,3 +121,5 @@ You can use end point `http://127.0.0.1:3210/v1/chat/completions` with follow pa
 The bridge automatically prefers the `gpt-4o` family when available, otherwise it uses the first available VS Code model. Use `model: 'auto'` or omit the model to use that default; you can still pass a listed model ID to select one explicitly. The root endpoint reports the chosen default.
 
 Streaming completions are supported. Since VS Code's Language Model API does not support system messages, `system` and `developer` messages are passed as user-provided instructions. Model access and usage remain subject to VS Code and the selected provider's consent, availability, and rate limits.
+
+Note: If you are not getting any model, check point 3 from the start of this document.
